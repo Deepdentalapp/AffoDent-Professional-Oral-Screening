@@ -1,19 +1,17 @@
 import streamlit as st
+st.set_page_config(page_title="AffoDent Dental Screening", layout="centered")
+
 from PIL import Image
 import torch
 import torchvision.transforms as T
 import requests
 import os
+from io import BytesIO
 from affodent_report import generate_pdf_report
 
-# Set up page configuration
-st.set_page_config(page_title="AffoDent Dental Screening", layout="centered")
-
-# Constants
 MODEL_PATH = "models/MASK_RCNN_ROOT_SEGMENTATION.pth"
 MODEL_URL = "https://huggingface.co/deepdentalscan/maskrcnn/resolve/main/MASK_RCNN_ROOT_SEGMENTATION.pth"
 
-# Download model if not present
 def download_model():
     os.makedirs("models", exist_ok=True)
     if not os.path.exists(MODEL_PATH):
@@ -23,7 +21,6 @@ def download_model():
                 f.write(response.content)
             st.success("Model downloaded.")
 
-# Load model
 @st.cache_resource
 def load_model():
     download_model()
@@ -31,7 +28,6 @@ def load_model():
     model.eval()
     return model
 
-# Prediction
 def get_prediction(model, image):
     transform = T.Compose([T.ToTensor()])
     img_tensor = transform(image).unsqueeze(0)
@@ -39,33 +35,33 @@ def get_prediction(model, image):
         output = model(img_tensor)[0]
     return output
 
-# Placeholder for drawing annotations
 def draw_boxes(image, output):
-    return image.copy()
+    draw = image.copy()
+    return draw
 
-# App UI
 st.title("AffoDent Dental Screening App")
+st.write("Upload a dental image to get your AI-assisted screening report.")
 
-with st.form("patient_form"):
+with st.form("form"):
     name = st.text_input("Patient Name")
     age = st.text_input("Age")
     sex = st.selectbox("Sex", ["Male", "Female", "Other"])
     complaint = st.text_area("Chief Complaint")
     submitted = st.form_submit_button("Submit")
 
-uploaded_image = st.file_uploader("Upload a dental image", type=["jpg", "jpeg", "png"])
+uploaded_image = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_image and submitted:
     image = Image.open(uploaded_image).convert("RGB")
     model = load_model()
     output = get_prediction(model, image)
 
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+    st.image(image, caption="Uploaded Image")
     annotated = draw_boxes(image, output)
-    st.image(annotated, caption="AI Marked Image", use_column_width=True)
+    st.image(annotated, caption="AI Marked Image")
 
     st.success("Analysis complete.")
-    st.download_button("Download PDF Report",
-                       generate_pdf_report(name, age, sex, complaint, annotated, output),
-                       file_name=f"{name}_dental_report.pdf",
-                       mime="application/pdf")
+
+    pdf_bytes = generate_pdf_report(name, age, sex, complaint, annotated, output)
+
+    st.download_button("Download PDF Report", data=pdf_bytes, file_name=f"{name}_Dental_Report.pdf", mime="application/pdf")
