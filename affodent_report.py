@@ -1,43 +1,65 @@
 from fpdf import FPDF
-import tempfile
-import os
+from io import BytesIO
+import datetime
 
-class PDF(FPDF):
-    def header(self):
-        self.set_font("Arial", "B", 14)
-        self.cell(0, 10, "AffoDent Dental Screening Report", ln=1, align="C")
-        self.ln(10)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("Arial", "I", 8)
-        self.cell(0, 10, "Page " + str(self.page_no()), 0, 0, "C")
+def summarize_findings(output):
+    labels = output.get("labels", [])
+    label_names = {
+        1: "Caries",
+        2: "Missing Tooth",
+        3: "Broken Tooth",
+        4: "Stain",
+        5: "Calculus",
+        6: "Ulcer",
+        7: "Lesion",
+        8: "Root Stamp"
+    }
+    summary = {}
+    for label in labels:
+        name = label_names.get(int(label), "Unknown")
+        summary[name] = summary.get(name, 0) + 1
+    return summary
 
 def generate_pdf_report(name, age, sex, complaint, image, output):
-    pdf = PDF()
+    pdf = FPDF()
     pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "AffoDent Dental Screening Report", ln=True, align="C")
+
     pdf.set_font("Arial", "", 12)
+    pdf.ln(10)
+    pdf.cell(0, 10, f"Date: {datetime.date.today()}", ln=True)
+    pdf.cell(0, 10, f"Name: {name}", ln=True)
+    pdf.cell(0, 10, f"Age: {age}", ln=True)
+    pdf.cell(0, 10, f"Sex: {sex}", ln=True)
+    pdf.cell(0, 10, f"Chief Complaint: {complaint}", ln=True)
 
-    pdf.cell(0, 10, f"Name: {name}", ln=1)
-    pdf.cell(0, 10, f"Age: {age}", ln=1)
-    pdf.cell(0, 10, f"Sex: {sex}", ln=1)
-    pdf.multi_cell(0, 10, f"Chief Complaint: {complaint}")
-    pdf.ln(5)
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "AI Detected Findings:", ln=True)
 
-    if "boxes" in output and len(output["boxes"]) > 0:
-        pdf.cell(0, 10, f"AI Findings: {len(output['boxes'])} potential issues detected.", ln=1)
+    findings = summarize_findings(output)
+    pdf.set_font("Arial", "", 12)
+    if findings:
+        for condition, count in findings.items():
+            pdf.cell(0, 10, f"- {condition}: {count} region(s) detected", ln=True)
     else:
-        pdf.cell(0, 10, "AI Findings: No major issues detected.", ln=1)
+        pdf.cell(0, 10, "No significant findings detected.", ln=True)
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_img:
-        image.save(tmp_img.name)
-        pdf.image(tmp_img.name, x=10, w=180)
-        os.unlink(tmp_img.name)
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "AI-Marked Image:", ln=True)
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-        pdf.output(tmp_pdf.name)
-        with open(tmp_pdf.name, "rb") as f:
-            pdf_bytes = f.read()
-        os.unlink(tmp_pdf.name)
+    img_temp = BytesIO()
+    image.save(img_temp, format="PNG")
+    img_temp.seek(0)
 
-    return pdf_bytes
+    pdf.image(img_temp, x=10, y=pdf.get_y(), w=180)
+
+    pdf.ln(85)
+    pdf.set_font("Arial", "I", 10)
+    pdf.cell(0, 10, "Note: This is an automated screening report and should be clinically verified.", ln=True)
+
+    output_buffer = BytesIO()
+    pdf.output(output_buffer)
+    return output_buffer.getvalue()
