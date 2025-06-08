@@ -1,36 +1,50 @@
 from fpdf import FPDF
-from PIL import Image
-import io
+import tempfile
+import os
+
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Arial", "B", 14)
+        self.cell(0, 10, "AffoDent Dental Screening Report", ln=1, align="C")
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Arial", "I", 8)
+        self.cell(0, 10, "Page " + str(self.page_no()), 0, 0, "C")
 
 def generate_pdf_report(name, age, sex, complaint, image, output):
-    pdf = FPDF()
+    pdf = PDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Arial", "", 12)
 
-    pdf.cell(200, 10, txt="AffoDent Dental Screening Report", ln=True, align="C")
-    pdf.ln(10)
+    # Patient Info
+    pdf.cell(0, 10, f"Name: {name}", ln=1)
+    pdf.cell(0, 10, f"Age: {age}", ln=1)
+    pdf.cell(0, 10, f"Sex: {sex}", ln=1)
+    pdf.multi_cell(0, 10, f"Chief Complaint: {complaint}")
+    pdf.ln(5)
 
-    pdf.cell(200, 10, txt=f"Name: {name}", ln=True)
-    pdf.cell(200, 10, txt=f"Age: {age}    Sex: {sex}", ln=True)
-    pdf.multi_cell(200, 10, txt=f"Chief Complaint: {complaint}")
+    # AI Findings (basic example)
+    findings = []
+    if "boxes" in output and len(output["boxes"]) > 0:
+        findings.append(f"AI detected {len(output['boxes'])} possible findings.")
+    else:
+        findings.append("No major issues detected.")
 
-    pdf.ln(10)
-    pdf.set_font("Arial", size=10)
-    pdf.cell(200, 10, txt="Findings (from AI model):", ln=True)
+    pdf.multi_cell(0, 10, "Findings:\n" + "\n".join(findings))
+    pdf.ln(5)
 
-    labels = output.get("labels", [])
-    scores = output.get("scores", [])
-    for idx, label in enumerate(labels):
-        if scores[idx] > 0.5:
-            pdf.cell(200, 8, txt=f"- Label {label} (Confidence: {scores[idx]:.2f})", ln=True)
+    # Save image temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_img:
+        image.save(tmp_img.name)
+        pdf.image(tmp_img.name, x=10, w=180)
+        os.unlink(tmp_img.name)
 
-    # Image to PDF
-    img_buffer = io.BytesIO()
-    image.save(img_buffer, format="PNG")
-    img_buffer.seek(0)
-    pdf.image(img_buffer, x=10, y=pdf.get_y() + 10, w=180)
-
-    output_buffer = io.BytesIO()
-    pdf.output(output_buffer)
-    output_buffer.seek(0)
-    return output_buffer
+    # Return as bytes
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        pdf.output(tmp_file.name)
+        with open(tmp_file.name, "rb") as f:
+            pdf_bytes = f.read()
+        os.unlink(tmp_file.name)
+        return pdf_bytes
