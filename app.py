@@ -176,3 +176,27 @@ if doc_pass == DOCTOR_PASSWORD:
 else:
     if doc_pass != "":
         st.error("Incorrect password.")
+
+import streamlit as st
+
+# Section: Frequently Asked Questions
+st.markdown("## 🦷 Frequently Asked Questions (FAQ)")
+
+faqs = [
+    ("How often should I visit the dentist?", "It is recommended to visit the dentist every 6 months for a routine check-up and cleaning."),
+    ("How do I prevent cavities?", "Brush twice a day with fluoride toothpaste, floss daily, avoid sugary foods, and get regular dental checkups."),
+    ("What is tooth sensitivity?", "Tooth sensitivity is pain or discomfort in teeth when exposed to hot, cold, sweet, or acidic foods and drinks."),
+    ("When should I change my toothbrush?", "Every 3 to 4 months or sooner if the bristles are frayed."),
+    ("Is flossing necessary?", "Yes, flossing removes plaque and food particles between teeth where a toothbrush can't reach."),
+    ("Can mouthwash replace brushing?", "No, mouthwash is a supplementary oral hygiene aid and does not replace brushing and flossing."),
+    ("Why does my jaw click while eating?", "It could be due to TMJ (temporomandibular joint) disorder and should be evaluated by a dentist."),
+    ("Should I brush after every meal?", "Brushing twice a day is generally sufficient. If brushing after a meal, wait at least 30 minutes."),
+    ("How can I treat bad breath?", "Maintain good oral hygiene, clean your tongue, stay hydrated, and visit a dentist for persistent issues."),
+    ("What causes tooth discoloration?", "Causes include smoking, coffee, tea, red wine, poor oral hygiene, and certain medications."),
+    # Continue adding up to 100 FAQs or loop through a larger list
+]
+
+with st.expander("Click to view FAQs"):
+    for question, answer in faqs:
+        st.markdown(f"**Q: {question}**")
+        st.markdown(f"A: {answer}\n")
