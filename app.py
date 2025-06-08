@@ -3,11 +3,10 @@ from PIL import Image
 import torch
 import torchvision.transforms as T
 import requests
-from io import BytesIO
 import os
 from affodent_report import generate_pdf_report
 
-# Set Streamlit page config
+# Set up page configuration
 st.set_page_config(page_title="AffoDent Dental Screening", layout="centered")
 
 # Constants
@@ -40,13 +39,12 @@ def get_prediction(model, image):
         output = model(img_tensor)[0]
     return output
 
-# Dummy draw function (replace with real visual logic)
+# Placeholder for drawing annotations
 def draw_boxes(image, output):
-    draw = image.copy()
-    return draw
+    return image.copy()
 
-# UI starts here
-st.title("🦷 AffoDent Dental Screening App")
+# App UI
+st.title("AffoDent Dental Screening App")
 
 with st.form("patient_form"):
     name = st.text_input("Patient Name")
@@ -66,8 +64,8 @@ if uploaded_image and submitted:
     annotated = draw_boxes(image, output)
     st.image(annotated, caption="AI Marked Image", use_column_width=True)
 
-    st.success("✅ Analysis complete.")
-    st.download_button("📄 Download PDF Report",
+    st.success("Analysis complete.")
+    st.download_button("Download PDF Report",
                        generate_pdf_report(name, age, sex, complaint, annotated, output),
                        file_name=f"{name}_dental_report.pdf",
                        mime="application/pdf")
