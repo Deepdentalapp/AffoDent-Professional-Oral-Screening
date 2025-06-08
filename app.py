@@ -228,3 +228,20 @@ if user_question:
             break
     if not found:
         st.warning("Sorry, I couldn't find an answer. Please consult Dr. Deep Sharma.")
+
+st.markdown("## 💰 Treatment Rate List at AffoDent Professional Dental Clinic")
+
+treatment_rates = {
+    "Dental Cleaning": "₹800",
+    "Cavity Filling": "₹1200 - ₹2500",
+    "Root Canal Treatment": "₹3000 - ₹6000",
+    "Dental Crown": "₹5000 - ₹10000",
+    "Tooth Extraction": "₹1000 - ₹3000",
+    "Orthodontic Braces": "₹25000 - ₹75000",
+    "Teeth Whitening": "₹4000 - ₹8000",
+    "Dental Implants": "₹20000 - ₹45000",
+    "Scaling & Polishing": "₹1000",
+    "Gum Treatment": "₹2000 - ₹6000"
+}
+
+st.table(treatment_rates)
