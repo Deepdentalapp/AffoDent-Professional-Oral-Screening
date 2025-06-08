@@ -200,3 +200,31 @@ with st.expander("Click to view FAQs"):
     for question, answer in faqs:
         st.markdown(f"**Q: {question}**")
         st.markdown(f"A: {answer}\n")
+
+st.markdown("## 💬 Chat with AffoBot (Dental Assistant)")
+
+# A simple chatbot using pre-defined Q&A
+user_question = st.text_input("Ask your dental question:")
+
+faq_dict = {
+    "cavity": "To prevent cavities, brush twice daily, floss, and avoid sugary snacks. Regular checkups help too.",
+    "tooth pain": "Tooth pain could be due to decay, fracture, or infection. Consult your dentist immediately.",
+    "sensitivity": "Tooth sensitivity can be treated with desensitizing toothpaste. Avoid cold/sweet foods.",
+    "bad breath": "Maintain oral hygiene, clean your tongue, and drink water. See a dentist if it persists.",
+    "ulcer": "For ulcers, rinse with warm salt water and avoid spicy foods. Apply a topical gel if needed.",
+    "gum bleeding": "This may indicate gingivitis. Brush gently, floss, and get a dental cleaning.",
+    "teeth whitening": "Teeth whitening is safe when done professionally. Over-the-counter kits are less effective.",
+    "wisdom teeth": "Wisdom tooth pain may need extraction if there's no space or infection.",
+    "braces": "Braces are used to correct misaligned teeth. There are metal, ceramic, and invisible options.",
+    "dentures": "Dentures are prosthetic replacements for missing teeth. They're removable and customizable."
+}
+
+if user_question:
+    found = False
+    for keyword, reply in faq_dict.items():
+        if keyword in user_question.lower():
+            st.success(reply)
+            found = True
+            break
+    if not found:
+        st.warning("Sorry, I couldn't find an answer. Please consult Dr. Deep Sharma.")
