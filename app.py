@@ -8,48 +8,7 @@ st.set_page_config(page_title="AffoDent Oral Screening App", layout="wide")
 # Sidebar menu
 menu = st.sidebar.radio("Navigation", [" Home", " Upload Details", " Rate List", " Doctor Login"])
 
-if menu == "🏠 Home":
-    st.title("Welcome to AffoDent Professional Dental Clinic")
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Tooth_icon.svg/1024px-Tooth_icon.svg.png", width=100)
-    
-    st.markdown("""
-    ### About Us
-    **AffoDent** is a trusted dental care clinic in Panbazar, Guwahati.  
-    Headed by **Dr. Deep Sharma (BDS, MDS)**, we offer high-quality, affordable dental care using advanced tools and techniques.
-    
-    - ✅ AI-assisted oral screening
-    - ✅ Professional consultation
-    - ✅ Gentle & ethical dental treatment
-    - ✅ Same-day reports via WhatsApp & Email
-    
-    📍 *Location*: College Hostel Road, Panbazar, Guwahati, Assam  
-    📞 *WhatsApp*: [Click here](https://wa.me/919864272102)  
-    🌐 *Google Map*: [Find us](https://maps.app.goo.gl/BFBwTbdq9nEHxDei6?g_st=com.google.maps.preview.copy)
-    """)
 
-elif menu == "📝 Upload Details":
-    # Your existing form and upload logic here
-    pass
-
-elif menu == "💰 Rate List":
-    st.markdown("## Treatment Rate List")
-    treatment_rates = {
-        "Dental Cleaning": "₹800",
-        "Cavity Filling": "₹1200 - ₹2500",
-        "Root Canal Treatment": "₹3000 - ₹6000",
-        "Dental Crown": "₹5000 - ₹10000",
-        "Tooth Extraction": "₹1000 - ₹3000",
-        "Orthodontic Braces": "₹25000 - ₹75000",
-        "Teeth Whitening": "₹4000 - ₹8000",
-        "Dental Implants": "₹20000 - ₹45000",
-        "Scaling & Polishing": "₹1000",
-        "Gum Treatment": "₹2000 - ₹6000"
-    }
-    st.table(treatment_rates)
-
-elif menu == "🔐 Doctor Login":
-    # Doctor password input and review logic
-    pass
 import streamlit as st
 from PIL import Image
 import io
