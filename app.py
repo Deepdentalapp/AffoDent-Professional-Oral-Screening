@@ -1,12 +1,4 @@
 
-import streamlit as st
-
-# Set page config
-st.set_page_config(page_title="AffoDent Oral Screening App", layout="wide")
-
-
-# Sidebar menu
-menu = st.sidebar.radio("Navigation", [" Home", " Upload Details", " Rate List", " Doctor Login"])
 
 
 import streamlit as st
