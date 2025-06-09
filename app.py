@@ -3,22 +3,19 @@ from PIL import Image
 import io
 import os
 import tempfile
-import json
-from pathlib import Path
 from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
+import json
 import glob
 
 st.set_page_config(page_title="AffoDent Oral Screening App", layout="wide")
 
-# Doctor password
+# Constants
 DOCTOR_PASSWORD = "affodoc"
+os.makedirs("submissions", exist_ok=True)
 
-# Create submissions folder
-Path("submissions").mkdir(exist_ok=True)
-
-# Welcome Section
+# Title
 st.title("AffoDent Oral Screening App")
 st.markdown("Welcome to **AffoDent Professional Dental Clinic**, Panbazar, Guwahati, Assam.")
 st.markdown("🦷 Upload your dental concern securely. Dr. Deep Sharma (MDS) will review and suggest treatment.")
@@ -43,24 +40,22 @@ with st.form("patient_form"):
     nursing = st.checkbox("Nursing Mother")
 
     st.subheader("📸 Upload Oral Photos (2 to 6 images)")
-    images = st.file_uploader("Upload Photos (Front, Left, Right, Upper, Lower, Tongue)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+    images = st.file_uploader("Upload Photos", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
     submitted = st.form_submit_button("Submit")
 
-# Save submission to disk
 if submitted:
     if len(images) < 2:
         st.error("Please upload at least 2 oral photographs.")
     elif not name or not complaint:
-        st.error("Please fill in all required fields (Name and Complaint).")
+        st.error("Please fill in required fields (Name and Complaint).")
     else:
-        st.success("Form submitted successfully. Doctor will review it soon.")
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_id = f"{name.replace(' ', '_')}_{timestamp}"
-        
-        # Save patient data
-        patient_info = {
+        # Save data
+        submission_id = f"{name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        save_path = os.path.join("submissions", submission_id)
+        os.makedirs(save_path, exist_ok=True)
+
+        data = {
             "name": name,
             "sex": sex,
             "age": age,
@@ -75,125 +70,129 @@ if submitted:
                 "Thyroid": thyroid,
                 "Pregnancy": pregnancy,
                 "Nursing": nursing
-            },
-            "image_names": [img.name for img in images]
+            }
         }
 
-        with open(f"submissions/{file_id}.json", "w") as f:
-            json.dump(patient_info, f)
+        # Save patient data
+        with open(os.path.join("submissions", f"{submission_id}.json"), "w") as f:
+            json.dump(data, f, indent=4)
 
-        image_folder = f"submissions/{file_id}_images"
-        os.makedirs(image_folder, exist_ok=True)
+        # Save uploaded images
+        img_dir = os.path.join("submissions", f"{submission_id}_images")
+        os.makedirs(img_dir, exist_ok=True)
         for img in images:
-            img_path = os.path.join(image_folder, img.name)
-            with open(img_path, "wb") as f:
+            with open(os.path.join(img_dir, img.name), "wb") as f:
                 f.write(img.read())
 
-# Doctor Panel
-st.divider()
-st.subheader("👨‍⚕️ Doctor Panel")
-doc_pass = st.text_input("Enter Doctor Password", type="password")
+        st.success("✅ Submission successful! Doctor will review your case soon.")
 
-if doc_pass == DOCTOR_PASSWORD:
-    submission_files = sorted(glob.glob("submissions/*.json"), reverse=True)
+# Doctor Login Section
+with st.expander("👨‍⚕️ Doctor Login"):
+    doc_pass = st.text_input("Enter Doctor Password", type="password", key="doctor_pass")
 
-    if submission_files:
-        selected_file = st.selectbox("📁 Select Patient Submission", submission_files)
-        if selected_file:
-            with open(selected_file, "r") as f:
-                pdata = json.load(f)
+    if doc_pass == DOCTOR_PASSWORD:
+        st.success("Access granted.")
+        submission_files = sorted(glob.glob("submissions/*.json"), reverse=True)
 
-            image_folder = selected_file.replace(".json", "_images")
-            image_paths = glob.glob(f"{image_folder}/*")
-            med_list = [k for k, v in pdata["medical"].items() if v]
+        if submission_files:
+            selected_file = st.selectbox("📁 Select Patient Submission", submission_files)
+            if selected_file:
+                with open(selected_file, "r") as f:
+                    pdata = json.load(f)
 
-            st.info(f"Reviewing: {pdata['name']}, Age: {pdata['age']}, Sex: {pdata['sex']}")
-            st.markdown(f"**Date & Time:** {pdata['date']} at {pdata['time']}")
-            st.markdown(f"**Complaint:** {pdata['complaint']}")
-            st.markdown("**Medical History:**")
-            st.markdown(", ".join(med_list) if med_list else "None")
+                image_folder = selected_file.replace(".json", "_images")
+                image_paths = glob.glob(f"{image_folder}/*")
+                med_list = [k for k, v in pdata["medical"].items() if v]
 
-            st.markdown("### Uploaded Images")
-            for img_path in image_paths:
-                st.image(img_path, width=300, caption=os.path.basename(img_path))
+                st.info(f"Reviewing: {pdata['name']}, Age: {pdata['age']}, Sex: {pdata['sex']}")
+                st.markdown(f"**Date & Time:** {pdata['date']} at {pdata['time']}")
+                st.markdown(f"**Complaint:** {pdata['complaint']}")
+                st.markdown("**Medical History:**")
+                st.markdown(", ".join(med_list) if med_list else "None")
 
-            analysis = st.text_area("Doctor's Report / Findings")
-            treatment = st.text_area("Treatment Plan and Approximate Cost")
-
-            if st.button("Generate Report PDF"):
-                pdf_buffer = io.BytesIO()
-                c = canvas.Canvas(pdf_buffer, pagesize=letter)
-                width, height = letter
-                y = height - 50
-
-                # Header
-                c.setFont("Helvetica-Bold", 14)
-                c.drawString(50, y, "AffoDent Professional Dental Clinic")
-                y -= 20
-                c.setFont("Helvetica", 12)
-                c.drawString(50, y, "College Hostel Road, Panbazar, Guwahati, Assam")
-                y -= 30
-
-                # Patient Info
-                c.setFont("Helvetica-Bold", 12)
-                c.drawString(50, y, "Patient Details")
-                y -= 15
-                c.setFont("Helvetica", 11)
-                c.drawString(50, y, f"Name: {pdata['name']}")
-                y -= 15
-                c.drawString(50, y, f"Age: {pdata['age']}  Sex: {pdata['sex']}")
-                y -= 15
-                c.drawString(50, y, f"WhatsApp: {pdata['whatsapp'] or 'N/A'}")
-                y -= 15
-                c.drawString(50, y, f"Email: {pdata['email'] or 'N/A'}")
-                y -= 15
-                c.drawString(50, y, f"Date: {pdata['date']}  Time: {pdata['time']}")
-                y -= 25
-                c.drawString(50, y, f"Chief Complaint: {pdata['complaint']}")
-                y -= 25
-                c.drawString(50, y, "Medical History: " + (", ".join(med_list) if med_list else "None"))
-                y -= 30
-
-                # Doctor Notes
-                c.setFont("Helvetica-Bold", 12)
-                c.drawString(50, y, "Doctor's Findings")
-                y -= 15
-                c.setFont("Helvetica", 11)
-                for line in analysis.splitlines():
-                    c.drawString(50, y, line)
-                    y -= 15
-
-                y -= 10
-                c.setFont("Helvetica-Bold", 12)
-                c.drawString(50, y, "Treatment Plan & Cost")
-                y -= 15
-                c.setFont("Helvetica", 11)
-                for line in treatment.splitlines():
-                    c.drawString(50, y, line)
-                    y -= 15
-
-                y -= 30
-                # Embed Images
+                st.markdown("### Uploaded Images")
                 for img_path in image_paths:
-                    if y < 350:
-                        c.showPage()
-                        y = height - 100
+                    st.image(img_path, width=300, caption=os.path.basename(img_path))
 
-                    image = Image.open(img_path).convert("RGB")
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:
-                        image.save(tmpfile.name, format="PNG")
-                        c.drawImage(tmpfile.name, 50, y - 300, width=400, height=300)
-                        c.drawString(50, y - 310, f"Image: {os.path.basename(img_path)}")
-                        y -= 320
+                analysis = st.text_area("Doctor's Report / Findings")
+                treatment = st.text_area("Treatment Plan and Approximate Cost")
 
-                c.showPage()
-                c.setFont("Helvetica", 12)
-                c.drawString(50, height - 50, "Reviewed by: Dr. Deep Sharma (BDS, MDS)")
-                c.save()
+                if st.button("Generate Report PDF"):
+                    pdf_buffer = io.BytesIO()
+                    c = canvas.Canvas(pdf_buffer, pagesize=letter)
+                    width, height = letter
+                    y = height - 50
 
-                st.success("✅ Report PDF generated successfully.")
-                st.download_button("📄 Download Report", data=pdf_buffer.getvalue(), file_name=f"{pdata['name']}_AffoDent_Report.pdf")
-else:
-    if doc_pass != "":
+                    # Header
+                    c.setFont("Helvetica-Bold", 14)
+                    c.drawString(50, y, "AffoDent Professional Dental Clinic")
+                    y -= 20
+                    c.setFont("Helvetica", 12)
+                    c.drawString(50, y, "College Hostel Road, Panbazar, Guwahati, Assam")
+                    y -= 30
+
+                    # Patient Info
+                    c.setFont("Helvetica-Bold", 12)
+                    c.drawString(50, y, "Patient Details")
+                    y -= 15
+                    c.setFont("Helvetica", 11)
+                    c.drawString(50, y, f"Name: {pdata['name']}")
+                    y -= 15
+                    c.drawString(50, y, f"Age: {pdata['age']}  Sex: {pdata['sex']}")
+                    y -= 15
+                    c.drawString(50, y, f"WhatsApp: {pdata['whatsapp'] or 'N/A'}")
+                    y -= 15
+                    c.drawString(50, y, f"Email: {pdata['email'] or 'N/A'}")
+                    y -= 15
+                    c.drawString(50, y, f"Date: {pdata['date']}  Time: {pdata['time']}")
+                    y -= 25
+                    c.drawString(50, y, f"Chief Complaint: {pdata['complaint']}")
+                    y -= 25
+                    c.drawString(50, y, "Medical History: " + (", ".join(med_list) if med_list else "None"))
+                    y -= 30
+
+                    # Doctor Notes
+                    c.setFont("Helvetica-Bold", 12)
+                    c.drawString(50, y, "Doctor's Findings")
+                    y -= 15
+                    c.setFont("Helvetica", 11)
+                    for line in analysis.splitlines():
+                        c.drawString(50, y, line)
+                        y -= 15
+
+                    y -= 10
+                    c.setFont("Helvetica-Bold", 12)
+                    c.drawString(50, y, "Treatment Plan & Cost")
+                    y -= 15
+                    c.setFont("Helvetica", 11)
+                    for line in treatment.splitlines():
+                        c.drawString(50, y, line)
+                        y -= 15
+
+                    y -= 30
+                    # Embed Images
+                    for img_path in image_paths:
+                        if y < 350:
+                            c.showPage()
+                            y = height - 100
+
+                        image = Image.open(img_path).convert("RGB")
+                        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:
+                            image.save(tmpfile.name, format="PNG")
+                            c.drawImage(tmpfile.name, 50, y - 300, width=400, height=300)
+                            c.drawString(50, y - 310, f"Image: {os.path.basename(img_path)}")
+                            y -= 320
+
+                    c.showPage()
+                    c.setFont("Helvetica", 12)
+                    c.drawString(50, height - 50, "Reviewed by: Dr. Deep Sharma (BDS, MDS)")
+                    c.save()
+
+                    st.success("✅ Report PDF generated successfully.")
+                    st.download_button("📄 Download Report", data=pdf_buffer.getvalue(), file_name=f"{pdata['name']}_AffoDent_Report.pdf")
+
+    elif doc_pass:
         st.error("Incorrect password.")
+
+# Optional Extras: FAQ and Rate List (unchanged from earlier)
 
